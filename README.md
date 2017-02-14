@@ -66,9 +66,20 @@ followed by a possibly unbounded number of `onNext` signals (as requested by `Su
 #### NOTES
 
 - The specifications below use binding words in capital letters from https://www.ietf.org/rfc/rfc2119.txt
-- The terms `emit`, `signal` or `send` are interchangeable. The specifications below will use `signal`.
-- The terms `synchronously` or `synchronous` refer to executing in the calling `Thread`.
-- The term "return normally" means "only throws exceptions that are explicitly allowed by the rule".
+
+### Glossary
+
+| Term                      | Definition                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| <a name="term_signal">Signal</a> | As a noun: one of the `onSubscribe`, `onNext`, `onComplete` or `onError` methods. As a verb: calling/invoking a signal. |
+| <a name="term_demand">Demand</a> | As a noun, the aggregated number of elements requested by a Subscriber which is yet to be delivered (fulfilled) by the Publisher. As a verb, the act of `request`-ing more elements. |
+| <a name="term_sync">Synchronous(ly)</a> | Executes on the calling Thread. |
+| <a name="term_return_normally">Return normally</a> | Returns a value of the declared type alternatively throws an exception permitted by this specification. |
+| <a name="term_emit_element">Emit element</a> | Signalling a value to `onNext`. |
+| <a name="term_responsivity">Responsivity</a> | Readiness/ability to respond. In this document used to indicate that the different components should not impair eachothers ability to respond. |
+| <a name="term_non-obstructing">Non-obstructing</a> | Quality describing a method which is as quick to execute as possible—on the calling thread. This means, for example, avoids heavy computations and other things that would stall the caller´s thread of execution. |
+| <a name="term_terminal_state">Terminal state</a> | The point where `onComplete` or `onError` is signalled. |
+
 
 ### SPECIFICATION
 
@@ -94,7 +105,7 @@ public interface Publisher<T> {
 | [:bulb:](#1.5 "1.5 explained") | *The intent of this rule is to make it clear that a Publisher is responsible for notifying its Subscribers that it has reached a `terminal state`—Subscribers can then act on this information; clean up resources, etc.* |
 | <a name="1.6">6</a>       | If a `Publisher` signals either `onError` or `onComplete` on a `Subscriber`, that `Subscriber`’s `Subscription` MUST be considered cancelled. |
 | [:bulb:](#1.6 "1.6 explained") | *The intent of this rule is to make sure that a Subscription is treated the same no matter if it was cancelled, the Publisher signalled onError or onComplete.* |
-| <a name="1.7">7</a>       | Once a terminal state has been signaled (`onError`, `onComplete`) it is REQUIRED that no further signals occur. |
+| <a name="1.7">7</a>       | Once a `terminal state` has been signaled (`onError`, `onComplete`) it is REQUIRED that no further signals occur. |
 | [:bulb:](#1.7 "1.7 explained") | *The intent of this rule is to make sure that onError and onComplete are the final states of an interaction between Publisher and Subscriber.* |
 | <a name="1.8">8</a>       | If a `Subscription` is cancelled its `Subscriber` MUST eventually stop being signaled. |
 | [:bulb:](#1.8 "1.8 explained") | *The intent of this rule is to make sure that Publishers respect a Subscriber’s request to cancel a Subscription when Subscription.cancel() has been called.* |
@@ -118,8 +129,8 @@ public interface Subscriber<T> {
 
 | ID                        | Rule                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| <a name="2.1">1</a>       | A `Subscriber` MUST signal demand via `Subscription.request(long n)` to receive `onNext` signals. |
-| [:bulb:](#2.1 "2.1 explained") | *The intent of this rule is to establish that it is the responsibility of the Subscriber to signal when, and how many, elements it is able and willing to receive.* |
+| <a name="2.1">1</a>       | A `Subscriber` MUST communicate demand via `Subscription.request(long n)` to receive `onNext` signals. |
+| [:bulb:](#2.1 "2.1 explained") | *The intent of this rule is to establish that it is the responsibility of the Subscriber to communicate when, and how many, elements it is able and willing to receive.* |
 | <a name="2.2">2</a>       | If a `Subscriber` suspects that its processing of signals will negatively impact its `Publisher`’s responsivity, it is RECOMMENDED that it asynchronously dispatches its signals. |
 | [:bulb:](#2.2 "2.2 explained") | *The intent of this rule is that a Subscriber should not impede the progress of the Publisher from an execution point-of-view. In other words, the Subscriber should not starve the Publisher from CPU cycles.* |
 | <a name="2.3">3</a>       | `Subscriber.onComplete()` and `Subscriber.onError(Throwable t)` MUST NOT call any methods on the `Subscription` or the `Publisher`. |
@@ -266,7 +277,7 @@ Then the maximum number of elements that may arrive—until more demand is signa
 
 These bounds must be respected by a publisher independent of whether the source it represents can be backpressured or not. In the case of sources whose production rate cannot be influenced—for example clock ticks or mouse movement—the publisher must choose to either buffer or drop elements to obey the imposed bounds.
 
-Subscribers signaling a demand for one element after the reception of an element effectively implement a Stop-and-Wait protocol where the demand signal is equivalent to acknowledgement. By providing demand for multiple elements the cost of acknowledgement is amortized. It is worth noting that the subscriber is allowed to signal demand at any point in time, allowing it to avoid unnecessary delays between the publisher and the subscriber (i.e. keeping its input buffer filled without having to wait for full round-trips).
+Subscribers signaling a demand for one element after the reception of an element effectively implement a Stop-and-Wait protocol where the demand signal is equivalent to acknowledgement. By providing demand for multiple elements the cost of acknowledgement is amortized. It is worth noting that the subscriber is allowed to communicate demand at any point in time, allowing it to avoid unnecessary delays between the publisher and the subscriber (i.e. keeping its input buffer filled without having to wait for full round-trips).
 
 ## Legal
 
